@@ -1,6 +1,6 @@
 package cc.blynk.server.transport;
 
-import cc.blynk.utils.ServerProperties;
+import cc.blynk.utils.properties.ServerProperties;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import io.netty.channel.epoll.Epoll;
@@ -48,6 +48,7 @@ public class TransportTypeHolder implements Closeable {
 
     @Override
     public void close() {
+        System.out.println("Stopping Transport Holder...");
         if (bossGroup != null) {
             bossGroup.shutdownGracefully();
         }

@@ -1,13 +1,15 @@
 package cc.blynk.server.core.reporting;
 
-import cc.blynk.server.core.model.Pin;
+import cc.blynk.server.core.model.DataStream;
 import cc.blynk.server.core.model.enums.PinType;
 import cc.blynk.server.core.model.widgets.outputs.graph.AggregationFunctionType;
 import cc.blynk.server.core.model.widgets.outputs.graph.GraphGranularityType;
 import cc.blynk.server.core.model.widgets.outputs.graph.GraphPeriod;
-import cc.blynk.server.core.protocol.exceptions.IllegalCommandException;
+
+import java.util.Arrays;
 
 import static cc.blynk.server.core.model.widgets.outputs.graph.GraphPeriod.LIVE;
+import static cc.blynk.server.internal.EmptyArraysUtil.EMPTY_INTS;
 
 /**
  * The Blynk Project.
@@ -26,9 +28,9 @@ public class GraphPinRequest {
 
     public final PinType pinType;
 
-    public final byte pin;
+    public final short pin;
 
-    public final GraphPeriod graphPeriod;
+    private final GraphPeriod graphPeriod;
 
     public final AggregationFunctionType functionType;
 
@@ -38,40 +40,18 @@ public class GraphPinRequest {
 
     public final int skipCount;
 
-    //todo remove in future versions
-    public GraphPinRequest(int dashId, int deviceId, String[] messageParts, int pinIndex, int valuesPerPin) {
-        try {
-            this.dashId = dashId;
-            this.deviceId = deviceId;
-            this.pinType = PinType.getPinType(messageParts[pinIndex * valuesPerPin].charAt(0));
-            this.pin = Byte.parseByte(messageParts[pinIndex * valuesPerPin + 1]);
-
-            //not used for old graphs, so setting any value.
-            this.graphPeriod = GraphPeriod.ALL;
-            this.functionType = null;
-            this.deviceIds = null;
-            this.isTag = false;
-            /////////////////////////////////////
-
-            this.count = Integer.parseInt(messageParts[pinIndex * valuesPerPin + 2]);
-            this.type = GraphGranularityType.getPeriodByType(messageParts[pinIndex * valuesPerPin + 3].charAt(0));
-            this.skipCount = 0;
-        } catch (NumberFormatException e) {
-            throw new IllegalCommandException("Graph request command body incorrect.");
-        }
-    }
-
-    public GraphPinRequest(int dashId, int[] deviceIds, Pin pin, GraphPeriod graphPeriod, int skipCount, AggregationFunctionType function) {
+    public GraphPinRequest(int dashId, int[] deviceIds, DataStream dataStream,
+                           GraphPeriod graphPeriod, int skipCount, AggregationFunctionType function) {
         this.dashId = dashId;
         this.deviceId = -1;
-        this.deviceIds = deviceIds;
+        this.deviceIds = deviceIds == null ? EMPTY_INTS : deviceIds;
         this.isTag = true;
-        if (pin == null) {
+        if (dataStream == null) {
             this.pinType = PinType.VIRTUAL;
-            this.pin = (byte) Pin.NO_PIN;
+            this.pin = (short) DataStream.NO_PIN;
         } else {
-            this.pinType = (pin.pinType == null ? PinType.VIRTUAL : pin.pinType);
-            this.pin = pin.pin;
+            this.pinType = (dataStream.pinType == null ? PinType.VIRTUAL : dataStream.pinType);
+            this.pin = dataStream.pin;
         }
         this.graphPeriod = graphPeriod;
         this.functionType = function;
@@ -80,20 +60,21 @@ public class GraphPinRequest {
         this.skipCount = skipCount;
     }
 
-    public GraphPinRequest(int dashId, int deviceId, Pin pin, GraphPeriod graphPeriod, int skipCount, AggregationFunctionType function) {
+    public GraphPinRequest(int dashId, int deviceId, DataStream dataStream,
+                           GraphPeriod graphPeriod, int skipCount, AggregationFunctionType function) {
         this.dashId = dashId;
         this.deviceId = deviceId;
-        this.deviceIds = null;
+        this.deviceIds = EMPTY_INTS;
         this.isTag = false;
-        if (pin == null) {
+        if (dataStream == null) {
             this.pinType = PinType.VIRTUAL;
-            this.pin = (byte) Pin.NO_PIN;
+            this.pin = (short) DataStream.NO_PIN;
         } else {
-            this.pinType = (pin.pinType == null ? PinType.VIRTUAL : pin.pinType);
-            this.pin = pin.pin;
+            this.pinType = (dataStream.pinType == null ? PinType.VIRTUAL : dataStream.pinType);
+            this.pin = dataStream.pin;
         }
         this.graphPeriod = graphPeriod;
-        this.functionType = function;
+        this.functionType = (function == null ? AggregationFunctionType.AVG : function);
         this.count = graphPeriod.numberOfPoints;
         this.type = graphPeriod.granularityType;
         this.skipCount = skipCount;
@@ -104,6 +85,23 @@ public class GraphPinRequest {
     }
 
     public boolean isValid() {
-        return deviceId != -1 || (deviceIds != null && deviceIds.length > 0);
+        return deviceId != -1 || deviceIds.length > 0;
+    }
+
+    @Override
+    public String toString() {
+        return "GraphPinRequest{"
+                + "dashId=" + dashId
+                + ", deviceId=" + deviceId
+                + ", deviceIds=" + Arrays.toString(deviceIds)
+                + ", isTag=" + isTag
+                + ", pinType=" + pinType
+                + ", pin=" + pin
+                + ", graphPeriod=" + graphPeriod
+                + ", functionType=" + functionType
+                + ", count=" + count
+                + ", type=" + type
+                + ", skipCount=" + skipCount
+                + '}';
     }
 }
